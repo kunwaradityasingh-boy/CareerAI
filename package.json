@@ -1,0 +1,11 @@
+{
+  "name": "careerai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n BACKEND,FRONTEND,HEALTH -c blue,green,yellow \"python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000\" \"npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173\" \"node scripts/health-check.js\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

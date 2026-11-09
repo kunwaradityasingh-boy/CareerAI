@@ -1,15 +1,44 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from backend.database import Base, engine
-from backend import models
+from backend.database import engine
+from backend.routers.auth import router as auth_router
+from backend.routers.student_profile import router as student_profile_router
 
-Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Database schema is managed by Alembic.
+    yield
+
 
 app = FastAPI(
     title="CareerAI API",
     description="AI-Powered Career & Placement Intelligence Platform",
     version="1.0.0",
+    lifespan=lifespan,
 )
+
+# Development frontend origins only.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+app.include_router(auth_router)
+app.include_router(student_profile_router)
 
 
 @app.get("/")
@@ -22,6 +51,14 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {
-        "status": "healthy",
-    }
+    try:
+        with engine.connect():
+            return {
+                "status": "healthy",
+                "database": "connected",
+            }
+    except Exception:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+        }
