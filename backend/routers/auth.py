@@ -11,12 +11,14 @@ from backend.schemas.auth import (
     RegisterRequest,
     RegistrationStartResponse,
     OTPVerifyRequest,
+    OTPResendRequest,
     UserResponse,
     TokenResponse,
 )
 from backend.services.auth_service import authenticate_user
 from backend.services.registration_service import (
     start_registration,
+    resend_registration_otp,
     verify_registration,
 )
 from backend.services.otp_service import (
@@ -75,12 +77,51 @@ def register(
     except RuntimeError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Registration email could not be sent. Please try again later.",
+            detail=str(exc) or "Registration email could not be sent. Please try again later.",
         ) from exc
 
 
 # --------------------------------------------------
-# 2. VERIFY REGISTRATION OTP
+# 2. RESEND REGISTRATION OTP
+# --------------------------------------------------
+
+
+@router.post(
+    "/register/resend",
+    response_model=RegistrationStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def resend_otp(
+    payload: OTPResendRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        return resend_registration_otp(
+            db=db,
+            email=str(payload.email),
+        )
+
+    except (OTPCooldownError, OTPLimitError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc) or "Verification email could not be sent. Please try again later.",
+        ) from exc
+
+
+# --------------------------------------------------
+# 3. VERIFY REGISTRATION OTP
 # --------------------------------------------------
 
 

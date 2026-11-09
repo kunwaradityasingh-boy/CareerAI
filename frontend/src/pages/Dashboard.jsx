@@ -2,27 +2,44 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { getStudentProfile } from "../../services/studentProfileService";
+import { getResumeHistory } from "../../services/resumeService";
 
 const modules = [
   {
     number: "01",
     title: "Resume Analyzer",
-    description: "Review your resume and identify areas for improvement.",
+    description: "Scan your resume against ATS algorithms, identify missing keywords, and get AI recommendations.",
+    badge: "⚡ Fully Functional",
+    path: "/resume-analyzer",
+    actionLabel: "Launch Analyzer →",
+    active: true,
   },
   {
     number: "02",
     title: "Skill Gap Analysis",
-    description: "Understand which skills you need for your target role.",
+    description: "Compare your technical proficiencies with real job market requirements for your target role.",
+    badge: "🎯 Available",
+    path: "/skill-gap",
+    actionLabel: "View Skill Gap →",
+    active: true,
   },
   {
     number: "03",
     title: "Career Roadmap",
-    description: "Build a structured path towards your career goals.",
+    description: "Follow a step-by-step milestone progression from foundational CS to placement readiness.",
+    badge: "🗺️ Available",
+    path: "/roadmap",
+    actionLabel: "Open Roadmap →",
+    active: true,
   },
   {
     number: "04",
     title: "Placement Preparation",
-    description: "Prepare for aptitude, coding and interviews.",
+    description: "Prepare for online assessments, technical coding rounds, and behavioral interview questions.",
+    badge: "Coming soon",
+    path: "/roadmap",
+    actionLabel: "Explore Prep Steps →",
+    active: false,
   },
 ];
 
@@ -31,37 +48,41 @@ function Dashboard() {
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(Boolean(token));
   const [profileError, setProfileError] = useState("");
+  const [latestResume, setLatestResume] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadProfile() {
+    if (!token) return;
+
+    async function loadData() {
       try {
         setProfileLoading(true);
         setProfileError("");
 
-        const data = await getStudentProfile(token);
+        const [profileData, resumeHistory] = await Promise.allSettled([
+          getStudentProfile(token),
+          getResumeHistory(token),
+        ]);
 
-        if (isMounted) {
-          setProfile(data);
-        }
-      } catch (error) {
         if (!isMounted) return;
 
-        if (error.response?.status === 401) {
+        if (profileData.status === "fulfilled") {
+          setProfile(profileData.value);
+        } else if (profileData.reason?.response?.status === 401) {
           logout();
           navigate("/", { replace: true });
           return;
         }
 
-        if (error.response?.status === 404) {
-          setProfile(null);
-        } else {
-          setProfileError(
-            "Unable to load your student profile. Please try again.",
-          );
+        if (resumeHistory.status === "fulfilled" && resumeHistory.value?.length > 0) {
+          setLatestResume(resumeHistory.value[0]);
+        }
+      } catch {
+        if (isMounted) {
+          setProfileError("Unable to load some dashboard details. Please try again.");
         }
       } finally {
         if (isMounted) {
@@ -70,241 +91,192 @@ function Dashboard() {
       }
     }
 
-    if (token) {
-      loadProfile();
-    } else {
-      setProfileLoading(false);
-    }
+    loadData();
 
     return () => {
       isMounted = false;
     };
   }, [token, logout, navigate]);
 
-  function handleLogout() {
-    logout();
-    navigate("/", { replace: true });
-  }
-
   const firstName = user?.name?.trim().split(/\s+/)[0] || "Student";
 
   return (
-    <div className="dashboard-shell">
-      <aside className="dashboard-sidebar">
-        <div className="dashboard-brand">
-          <span className="dashboard-brand-mark">C</span>
-          <span>CareerAI</span>
+    <div className="dashboard-page-content">
+      {/* Welcome Hero Card */}
+      <section className="welcome-section">
+        <div>
+          <span className="section-kicker">YOUR CAREER WORKSPACE</span>
+          <h1>Welcome back, {firstName}.</h1>
+          <p>
+            Your career journey starts with knowing where you stand. Take the next step
+            towards placement readiness with CareerAI tools.
+          </p>
         </div>
 
-        <div className="sidebar-label">WORKSPACE</div>
+        <div className="welcome-date">CAREERAI STUDENT PORTAL</div>
+      </section>
 
-        <nav className="sidebar-nav">
-          <a href="#overview" className="sidebar-link active">
-            <span>⌂</span>
-            Overview
-          </a>
+      {/* Quick Stat Cards Row */}
+      <section className="stats-cards-grid">
+        <div className="stat-card" onClick={() => navigate("/profile")}>
+          <div className="stat-card-icon">👤</div>
+          <div className="stat-card-info">
+            <span className="stat-card-label">Profile Status</span>
+            <strong>{profile ? "Profile Completed" : "Incomplete Profile"}</strong>
+            <span className="stat-card-link">
+              {profile ? `${profile.target_role || "Role set"} · Edit →` : "Complete Profile →"}
+            </span>
+          </div>
+        </div>
 
-          <a href="#modules" className="sidebar-link">
-            <span>▤</span>
-            Career tools
-          </a>
+        <div className="stat-card" onClick={() => navigate("/resume-analyzer")}>
+          <div className="stat-card-icon">⚡</div>
+          <div className="stat-card-info">
+            <span className="stat-card-label">Latest ATS Score</span>
+            <strong>
+              {latestResume ? `${latestResume.overall_score}/100 Score` : "No Resume Scanned"}
+            </strong>
+            <span className="stat-card-link">
+              {latestResume ? "View Latest Report →" : "Scan Your Resume Now →"}
+            </span>
+          </div>
+        </div>
+
+        <div className="stat-card" onClick={() => navigate("/skill-gap")}>
+          <div className="stat-card-icon">🎯</div>
+          <div className="stat-card-info">
+            <span className="stat-card-label">Skill Gap Analysis</span>
+            <strong>
+              {profile?.technical_skills?.length
+                ? `${profile.technical_skills.length} Skills Listed`
+                : "Add Skills"}
+            </strong>
+            <span className="stat-card-link">Check Missing Skills →</span>
+          </div>
+        </div>
+
+        <div className="stat-card" onClick={() => navigate("/roadmap")}>
+          <div className="stat-card-icon">🗺️</div>
+          <div className="stat-card-info">
+            <span className="stat-card-label">Career Roadmap</span>
+            <strong>Placement Pathway</strong>
+            <span className="stat-card-link">Track Milestones →</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Student Profile Overview Card */}
+      <section className="student-details-card">
+        <div className="section-heading">
+          <div>
+            <span className="section-kicker">ACADEMIC & CAREER PROFILE</span>
+            <h2>Your Student Profile</h2>
+            <p>Your saved academic information, target role, and technical skills.</p>
+          </div>
 
           <button
             type="button"
-            className="sidebar-link"
+            className="profile-edit-button"
             onClick={() => navigate("/profile")}
           >
-            <span>◉</span>
-            My profile
-          </button>
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="sidebar-user">
-            <div className="user-avatar">
-              {firstName.charAt(0).toUpperCase()}
-            </div>
-
-            <div className="sidebar-user-info">
-              <strong>{user?.name || "Student"}</strong>
-              <span>Student account</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="logout-button"
-            onClick={handleLogout}
-          >
-            <span>↪</span>
-            Sign out
+            {profile ? "Edit Profile" : "Complete Profile"}
           </button>
         </div>
-      </aside>
 
-      <main className="dashboard-main">
-        <header className="dashboard-topbar">
-          <div>
-            <span className="topbar-label">STUDENT WORKSPACE</span>
-            <p>Career development</p>
-          </div>
-
-          <div className="topbar-account">
-            <span className="account-status"></span>
-            Account active
-          </div>
-        </header>
-
-        <div className="dashboard-content" id="overview">
-          <section className="welcome-section">
+        {profileLoading ? (
+          <p className="loading-text">Loading your profile...</p>
+        ) : profileError ? (
+          <p role="alert" className="text-red-500">{profileError}</p>
+        ) : profile ? (
+          <div className="student-details-grid">
             <div>
-              <span className="section-kicker">YOUR CAREER WORKSPACE</span>
-              <h1>Welcome back, {firstName}.</h1>
-              <p>
-                Your career journey starts with knowing where you stand. Take
-                the next step at your own pace.
-              </p>
+              <span>College / University</span>
+              <strong>{profile.college_name || "Not added"}</strong>
             </div>
 
-            <div className="welcome-date">CAREERAI STUDENT PORTAL</div>
-          </section>
-
-          <section className="profile-summary">
-            <div className="profile-avatar">
-              {firstName.charAt(0).toUpperCase()}
+            <div>
+              <span>Degree</span>
+              <strong>{profile.degree || "Not added"}</strong>
             </div>
 
-            <div className="profile-details">
-              <span className="section-kicker">YOUR ACCOUNT</span>
-              <h2>{user?.name || "Student"}</h2>
-              <p>{user?.email || "Email unavailable"}</p>
+            <div>
+              <span>Branch</span>
+              <strong>{profile.branch || "Not added"}</strong>
             </div>
 
-            <span className="verified-label">Registered student</span>
-          </section>
-
-          <section className="student-details-card">
-            <div className="section-heading">
-              <div>
-                <span className="section-kicker">
-                  ACADEMIC & CAREER DETAILS
-                </span>
-                <h2>Your student profile</h2>
-                <p>Your saved academic information and career preferences.</p>
-              </div>
-
-              <button
-                type="button"
-                className="profile-edit-button"
-                onClick={() => navigate("/profile")}
-              >
-                Edit profile
-              </button>
+            <div>
+              <span>Graduation Year</span>
+              <strong>{profile.graduation_year || "Not added"}</strong>
             </div>
 
-            {profileLoading ? (
-              <p>Loading your profile...</p>
-            ) : profileError ? (
-              <p role="alert">{profileError}</p>
-            ) : profile ? (
-              <div className="student-details-grid">
-                <div>
-                  <span>College / University</span>
-                  <strong>{profile.college_name || "Not added"}</strong>
-                </div>
-
-                <div>
-                  <span>Degree</span>
-                  <strong>{profile.degree || "Not added"}</strong>
-                </div>
-
-                <div>
-                  <span>Branch</span>
-                  <strong>{profile.branch || "Not added"}</strong>
-                </div>
-
-                <div>
-                  <span>Graduation Year</span>
-                  <strong>{profile.graduation_year || "Not added"}</strong>
-                </div>
-
-                <div>
-                  <span>Target Job Role</span>
-                  <strong>{profile.target_role || "Not added"}</strong>
-                </div>
-
-                <div>
-                  <span>Preferred Industry</span>
-                  <strong>{profile.preferred_industry || "Not added"}</strong>
-                </div>
-
-                <div>
-                  <span>Technical Skills</span>
-                  <strong>
-                    {profile.technical_skills?.join(", ") || "Not added"}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>Career Interests</span>
-                  <strong>
-                    {profile.career_interests?.join(", ") || "Not added"}
-                  </strong>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p>Your student profile has not been created yet.</p>
-
-                <button
-                  type="button"
-                  className="profile-edit-button"
-                  onClick={() => navigate("/profile")}
-                >
-                  Complete profile
-                </button>
-              </div>
-            )}
-          </section>
-
-          <section className="modules-section" id="modules">
-            <div className="section-heading">
-              <div>
-                <span className="section-kicker">YOUR TOOLKIT</span>
-                <h2>Career development tools</h2>
-                <p>
-                  Tools to help you understand and prepare for your next step.
-                </p>
-              </div>
-
-              <span className="module-count">04 MODULES</span>
+            <div>
+              <span>Target Job Role</span>
+              <strong>{profile.target_role || "Not added"}</strong>
             </div>
 
-            <div className="module-grid">
-              {modules.map((module) => (
-                <article className="module-card" key={module.number}>
-                  <div className="module-card-top">
-                    <span className="module-number">{module.number}</span>
-                    <span className="coming-soon">Coming soon</span>
-                  </div>
-
-                  <h3>{module.title}</h3>
-                  <p>{module.description}</p>
-
-                  <div className="module-card-footer">
-                    <span>In development</span>
-                    <span>↗</span>
-                  </div>
-                </article>
-              ))}
+            <div>
+              <span>Preferred Industry</span>
+              <strong>{profile.preferred_industry || "Not added"}</strong>
             </div>
-          </section>
 
-          <footer className="dashboard-footer">
-            CareerAI · Career & Placement Intelligence
-          </footer>
+            <div className="full-width-detail">
+              <span>Technical Skills</span>
+              <strong>
+                {profile.technical_skills?.join(", ") || "Not added"}
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <div className="empty-profile-banner">
+            <p>Your student profile has not been created yet.</p>
+            <button
+              type="button"
+              className="profile-edit-button mt-2"
+              onClick={() => navigate("/profile")}
+            >
+              Complete Profile Now
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* Dedicated Tools & Modules Section */}
+      <section className="modules-section" id="modules">
+        <div className="section-heading">
+          <div>
+            <span className="section-kicker">YOUR TOOLKIT</span>
+            <h2>Career Development Tools</h2>
+            <p>Dedicated tools to help you analyze, upskill, and prepare for interviews.</p>
+          </div>
+
+          <span className="module-count">04 MODULES</span>
         </div>
-      </main>
+
+        <div className="module-grid">
+          {modules.map((module) => (
+            <article
+              className={`module-card ${module.active ? "interactive" : ""}`}
+              key={module.number}
+              onClick={() => navigate(module.path)}
+            >
+              <div className="module-card-top">
+                <span className="module-number">{module.number}</span>
+                <span className={`coming-soon ${module.active ? "badge-live" : ""}`}>
+                  {module.badge}
+                </span>
+              </div>
+
+              <h3>{module.title}</h3>
+              <p>{module.description}</p>
+
+              <div className="module-card-footer">
+                <span className="action-text">{module.actionLabel}</span>
+                <span>↗</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

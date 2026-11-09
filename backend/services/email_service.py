@@ -44,6 +44,10 @@ def send_email(to_email: str, subject: str, html_content: str) -> dict:
         import logging
 
         logger = logging.getLogger(__name__)
-        logger.exception("Resend email delivery failed")
 
-        raise RuntimeError("Email delivery failed.") from error
+        logger.error(
+            "Resend email delivery failed: %s",
+            error,
+        )
+
+        raise RuntimeError(f"Email delivery failed: {error}") from error

@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.database import engine
 from backend.routers.auth import router as auth_router
 from backend.routers.student_profile import router as student_profile_router
+from backend.routers.resume import router as resume_router
 
 
 @asynccontextmanager
@@ -33,12 +34,13 @@ app.add_middleware(
         "http://127.0.0.1:5175",
     ],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(auth_router)
 app.include_router(student_profile_router)
+app.include_router(resume_router)
 
 
 @app.get("/")

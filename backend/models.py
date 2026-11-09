@@ -29,6 +29,13 @@ class User(Base):
         passive_deletes=True,
     )
 
+    resume_analyses = relationship(
+        "ResumeAnalysis",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
 
 class StudentProfile(Base):
     __tablename__ = "student_profiles"
@@ -142,4 +149,78 @@ class PendingRegistration(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
+    )
+
+
+class ResumeAnalysis(Base):
+    __tablename__ = "resume_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    file_name = Column(String(255), nullable=False)
+    target_role = Column(String(120), nullable=False)
+    overall_score = Column(Integer, nullable=False)
+    ats_compatibility = Column(Integer, nullable=False)
+    skills_score = Column(Integer, nullable=False)
+    impact_score = Column(Integer, nullable=False)
+    structure_score = Column(Integer, nullable=False)
+
+    strengths = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'::jsonb"),
+    )
+
+    weaknesses = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'::jsonb"),
+    )
+
+    found_keywords = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'::jsonb"),
+    )
+
+    missing_keywords = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'::jsonb"),
+    )
+
+    recommendations = Column(
+        JSONB,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'::jsonb"),
+    )
+
+    section_feedback = Column(
+        JSONB,
+        nullable=False,
+        default=dict,
+        server_default=text("'{}'::jsonb"),
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    user = relationship(
+        "User",
+        back_populates="resume_analyses",
     )

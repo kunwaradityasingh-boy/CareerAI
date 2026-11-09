@@ -10,6 +10,23 @@ export async function registerUser({ name, email, password }) {
   return response.data;
 }
 
+export async function verifyRegistration({ email, otp }) {
+  const response = await api.post("/api/v1/auth/register/verify", {
+    email,
+    otp,
+  });
+
+  return response.data;
+}
+
+export async function resendRegistrationOtp({ email }) {
+  const response = await api.post("/api/v1/auth/register/resend", {
+    email,
+  });
+
+  return response.data;
+}
+
 export async function loginUser({ email, password }) {
   const formData = new URLSearchParams();
 

@@ -218,154 +218,194 @@ function StudentProfile() {
   }
 
   if (loading) {
-    return <p>Loading student profile...</p>;
+    return <p className="loading-text">Loading student profile...</p>;
   }
 
   return (
-    <main className="profile-page">
-      <div className="profile-header">
-        <button type="button" onClick={() => navigate("/dashboard")}>
-          ← Dashboard
-        </button>
+    <div className="profile-page-shell">
+      <div className="page-header">
+        <div className="page-header-text">
+          <span className="section-kicker">PERSONAL & ACADEMIC DETAILS</span>
+          <h1>Student Profile</h1>
+          <p>
+            Manage your academic background, target industry, and technical skills
+            used across CareerAI tools.
+          </p>
+        </div>
 
-        <h1>Student Profile</h1>
-        <p>Manage your academic details and career preferences.</p>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={() => navigate("/dashboard")}
+        >
+          ← Back to Dashboard
+        </button>
       </div>
 
-      {error && <p role="alert">{error}</p>}
-      {success && <p role="status">{success}</p>}
-
-      <form onSubmit={handleSubmit} className="profile-form">
-        <div>
-          <label htmlFor="college_name">
-            College / University <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="college_name"
-            name="college_name"
-            value={form.college_name}
-            onChange={handleChange}
-            maxLength={150}
-            required
-            aria-required="true"
-          />
+      {error && (
+        <div className="alert-box alert-error" role="alert">
+          <span>⚠️</span>
+          <div>{error}</div>
         </div>
+      )}
 
-        <div>
-          <label htmlFor="degree">
-            Degree <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="degree"
-            name="degree"
-            value={form.degree}
-            onChange={handleChange}
-            maxLength={100}
-            required
-            aria-required="true"
-          />
+      {success && (
+        <div className="alert-box alert-success" role="status">
+          <span>✓</span>
+          <div>{success}</div>
         </div>
+      )}
 
-        <div>
-          <label htmlFor="branch">
-            Branch / Specialization <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="branch"
-            name="branch"
-            value={form.branch}
-            onChange={handleChange}
-            maxLength={120}
-            required
-            aria-required="true"
-          />
-        </div>
+      <div className="analyzer-card profile-card">
+        <form onSubmit={handleSubmit} className="profile-form-grid">
+          <div className="form-group">
+            <label htmlFor="college_name">
+              College / University <span className="req">*</span>
+            </label>
+            <input
+              id="college_name"
+              name="college_name"
+              className="form-input"
+              value={form.college_name}
+              onChange={handleChange}
+              placeholder="e.g. Stanford University, IIT Delhi"
+              maxLength={150}
+              required
+              aria-required="true"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="graduation_year">
-            Graduation Year <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="graduation_year"
-            name="graduation_year"
-            type="number"
-            min="2000"
-            max="2100"
-            step="1"
-            value={form.graduation_year}
-            onChange={handleChange}
-            required
-            aria-required="true"
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="degree">
+              Degree <span className="req">*</span>
+            </label>
+            <input
+              id="degree"
+              name="degree"
+              className="form-input"
+              value={form.degree}
+              onChange={handleChange}
+              placeholder="e.g. B.Tech, B.S., M.S."
+              maxLength={100}
+              required
+              aria-required="true"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="target_role">
-            Target Job Role <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="target_role"
-            name="target_role"
-            value={form.target_role}
-            onChange={handleChange}
-            maxLength={120}
-            required
-            aria-required="true"
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="branch">
+              Branch / Specialization <span className="req">*</span>
+            </label>
+            <input
+              id="branch"
+              name="branch"
+              className="form-input"
+              value={form.branch}
+              onChange={handleChange}
+              placeholder="e.g. Computer Science, Information Technology"
+              maxLength={120}
+              required
+              aria-required="true"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="preferred_industry">
-            Preferred Industry <span aria-hidden="true">*</span>
-          </label>
-          <input
-            id="preferred_industry"
-            name="preferred_industry"
-            value={form.preferred_industry}
-            onChange={handleChange}
-            maxLength={120}
-            required
-            aria-required="true"
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="graduation_year">
+              Graduation Year <span className="req">*</span>
+            </label>
+            <input
+              id="graduation_year"
+              name="graduation_year"
+              className="form-input"
+              type="number"
+              min="2000"
+              max="2100"
+              step="1"
+              value={form.graduation_year}
+              onChange={handleChange}
+              placeholder="2026"
+              required
+              aria-required="true"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="technical_skills">
-            Technical Skills (comma-separated) <span aria-hidden="true">*</span>
-          </label>
-          <textarea
-            id="technical_skills"
-            name="technical_skills"
-            value={form.technical_skills}
-            onChange={handleChange}
-            placeholder="Python, Java, SQL, React"
-            rows={3}
-            required
-            aria-required="true"
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="target_role">
+              Target Job Role <span className="req">*</span>
+            </label>
+            <input
+              id="target_role"
+              name="target_role"
+              className="form-input"
+              value={form.target_role}
+              onChange={handleChange}
+              placeholder="e.g. Full Stack Developer, Data Scientist"
+              maxLength={120}
+              required
+              aria-required="true"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="career_interests">
-            Career Interests (comma-separated) <span aria-hidden="true">*</span>
-          </label>
-          <textarea
-            id="career_interests"
-            name="career_interests"
-            value={form.career_interests}
-            onChange={handleChange}
-            placeholder="Cloud Computing, AI, Backend Development"
-            rows={3}
-            required
-            aria-required="true"
-          />
-        </div>
+          <div className="form-group">
+            <label htmlFor="preferred_industry">
+              Preferred Industry <span className="req">*</span>
+            </label>
+            <input
+              id="preferred_industry"
+              name="preferred_industry"
+              className="form-input"
+              value={form.preferred_industry}
+              onChange={handleChange}
+              placeholder="e.g. FinTech, SaaS, AI, HealthTech"
+              maxLength={120}
+              required
+              aria-required="true"
+            />
+          </div>
 
-        <button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save Profile"}
-        </button>
-      </form>
-    </main>
+          <div className="form-group full-width">
+            <label htmlFor="technical_skills">
+              Technical Skills (comma-separated) <span className="req">*</span>
+              <span className="label-hint">These skills are compared during Skill Gap Analysis</span>
+            </label>
+            <textarea
+              id="technical_skills"
+              name="technical_skills"
+              className="form-textarea"
+              value={form.technical_skills}
+              onChange={handleChange}
+              placeholder="Python, JavaScript, React, Node.js, SQL, Docker, Git"
+              rows={3}
+              required
+              aria-required="true"
+            />
+          </div>
+
+          <div className="form-group full-width">
+            <label htmlFor="career_interests">
+              Career Interests & Focus Areas (comma-separated) <span className="req">*</span>
+            </label>
+            <textarea
+              id="career_interests"
+              name="career_interests"
+              className="form-textarea"
+              value={form.career_interests}
+              onChange={handleChange}
+              placeholder="Cloud Computing, AI & Machine Learning, Distributed Systems"
+              rows={3}
+              required
+              aria-required="true"
+            />
+          </div>
+
+          <div className="full-width form-actions">
+            <button type="submit" className="submit-btn" disabled={saving}>
+              {saving ? "Saving Changes..." : "Save Profile Changes →"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 

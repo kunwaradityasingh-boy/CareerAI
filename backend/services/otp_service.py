@@ -73,11 +73,48 @@ def verify_otp(otp: str, stored_hash: str) -> bool:
     return hmac.compare_digest(calculated_hash, stored_hash)
 
 
+def ensure_utc(dt: datetime | None) -> datetime | None:
+    """Ensure a datetime object is timezone-aware in UTC."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def consume_previous_challenges(
+    db: Session,
+    email: str,
+    purpose: str,
+    exclude_id: int | None = None,
+) -> None:
+    """Invalidate previous unused challenges for an email and purpose."""
+    normalized_email = email.strip().lower()
+    now = datetime.now(timezone.utc)
+
+    query = select(OTPChallenge).where(
+        OTPChallenge.email == normalized_email,
+        OTPChallenge.purpose == purpose,
+        OTPChallenge.consumed_at.is_(None),
+    )
+
+    if exclude_id is not None:
+        query = query.where(OTPChallenge.id != exclude_id)
+
+    previous_challenges = db.scalars(query).all()
+
+    for challenge in previous_challenges:
+        challenge.consumed_at = now
+
+    db.commit()
+
+
 def create_otp_challenge(
     db: Session,
     email: str,
     purpose: str,
     user_id: int | None = None,
+    consume_previous: bool = True,
 ) -> str:
     """
     Create and persist an OTP challenge.
@@ -108,7 +145,7 @@ def create_otp_challenge(
         )
 
         if latest_challenge and latest_challenge.created_at:
-            elapsed = (now - latest_challenge.created_at).total_seconds()
+            elapsed = (now - ensure_utc(latest_challenge.created_at)).total_seconds()
 
             if elapsed < OTP_RESEND_COOLDOWN_SECONDS:
                 raise OTPCooldownError("Please wait before requesting another OTP.")
@@ -129,17 +166,13 @@ def create_otp_challenge(
         if request_count >= OTP_MAX_REQUESTS_PER_HOUR:
             raise OTPLimitError("OTP request limit reached. Try again later.")
 
-        # Invalidate previous unused challenges.
-        previous_challenges = db.scalars(
-            select(OTPChallenge).where(
-                OTPChallenge.email == normalized_email,
-                OTPChallenge.purpose == purpose,
-                OTPChallenge.consumed_at.is_(None),
+        if consume_previous:
+            # Invalidate previous unused challenges immediately.
+            consume_previous_challenges(
+                db=db,
+                email=normalized_email,
+                purpose=purpose,
             )
-        ).all()
-
-        for challenge in previous_challenges:
-            challenge.consumed_at = now
 
         raw_otp = generate_otp()
 
@@ -197,7 +230,7 @@ def verify_otp_challenge(
     if challenge is None:
         raise OTPInvalidError("Invalid or already used OTP.")
 
-    if challenge.expires_at <= now:
+    if ensure_utc(challenge.expires_at) <= now:
         challenge.consumed_at = now
         db.commit()
         raise OTPExpiredError("OTP has expired. Request a new OTP.")
